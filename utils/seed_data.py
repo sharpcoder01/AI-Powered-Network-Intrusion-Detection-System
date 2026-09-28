@@ -259,6 +259,9 @@ def clear_existing_data(app):
 
 def seed_all(clear=False, flows=5000, alerts=500, days=7):
     """Seed all data."""
+    if os.environ.get('FLASK_ENV', 'development').lower() == 'production':
+        raise RuntimeError('Demo data seeding is disabled in production.')
+
     print("\n" + "="*60)
     print("🛡️  AI-NIDS DATA SEEDER")
     print("="*60 + "\n")

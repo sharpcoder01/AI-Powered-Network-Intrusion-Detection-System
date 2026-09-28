@@ -43,6 +43,20 @@ def create_app(config_name=None):
     
     # Load configuration
     app.config.from_object(config[config_name])
+    if config_name == 'production':
+        secret_key = os.environ.get('SECRET_KEY', '')
+        admin_password = os.environ.get('ADMIN_PASSWORD', '')
+        if len(secret_key) < 32 or secret_key in {
+            'your-super-secret-key-change-in-production',
+            'ai-nids-super-secret-key-change-in-production',
+            'ai-nids-production-secret-key-2024',
+            'change-me-in-production',
+        }:
+            raise RuntimeError('Production requires SECRET_KEY with at least 32 characters.')
+        if len(admin_password) < 12:
+            raise RuntimeError('Production requires ADMIN_PASSWORD with at least 12 characters.')
+        app.config['SECRET_KEY'] = secret_key
+
     config[config_name].init_app(app)
     
     # Initialize extensions
@@ -64,18 +78,8 @@ def create_app(config_name=None):
     with app.app_context():
         db.create_all()
         
-        # Create default admin user if not exists
-        from app.models.database import User
-        if not User.query.filter_by(username='admin').first():
-            admin = User(
-                username='admin',
-                email='admin@ainids.local',
-                role='admin'
-            )
-            admin.set_password('admin123')  # Change in production!
-            db.session.add(admin)
-            db.session.commit()
-            app.logger.info('Created default admin user')
+        if config_name == 'production':
+            bootstrap_production_admin(app)
     
     # Register CLI commands
     register_cli_commands(app)
@@ -86,6 +90,36 @@ def create_app(config_name=None):
     app.logger.info(f'AI-NIDS initialized in {config_name} mode')
     
     return app
+
+
+def bootstrap_production_admin(app):
+    """Create the initial production admin from explicitly configured secrets."""
+    from app.models.database import User
+
+    username = os.environ.get('ADMIN_USERNAME', 'admin')
+    email = os.environ.get('ADMIN_EMAIL', 'admin@ainids.local')
+    password = os.environ['ADMIN_PASSWORD']
+    known_defaults = ('admin123', 'demo123')
+
+    for user in User.query.filter_by(role='admin').all():
+        if any(user.check_password(default) for default in known_defaults):
+            user.is_active = False
+            app.logger.warning('Disabled admin account with a known default password: %s', user.username)
+
+    admin = User.query.filter_by(username=username).first()
+    if admin is None:
+        admin = User(username=username, email=email, role='admin')
+        admin.set_password(password)
+        db.session.add(admin)
+        app.logger.info('Created production admin from configured credentials')
+    elif any(admin.check_password(default) for default in known_defaults):
+        admin.email = email
+        admin.role = 'admin'
+        admin.is_active = True
+        admin.set_password(password)
+        app.logger.warning('Replaced a known default password for production admin: %s', username)
+
+    db.session.commit()
 
 
 def setup_logging(app):

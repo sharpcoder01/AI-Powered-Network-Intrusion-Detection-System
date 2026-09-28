@@ -13,7 +13,6 @@ import json
 from app import db
 from app.models.database import Alert, NetworkFlow, APIKey
 from detection.detector import DetectionEngine as IntrusionDetector
-from ml.inference.predictor import ModelPredictor
 
 api_bp = Blueprint('api', __name__)
 
@@ -81,6 +80,8 @@ def system_status():
     """Get system status (public endpoint)."""
     try:
         # Check ML models
+        from ml.inference.predictor import ModelPredictor
+
         predictor = ModelPredictor()
         models_loaded = predictor.is_loaded()
     except:

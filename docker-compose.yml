@@ -15,7 +15,10 @@ services:
       - "5000:8000"
     environment:
       - FLASK_ENV=production
-      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - SECRET_KEY=${SECRET_KEY:?Set a strong SECRET_KEY before deploying}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?Set ADMIN_PASSWORD before deploying}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
       - DATABASE_URL=postgresql://nids:${DB_PASSWORD:-nids_password}@db:5432/ai_nids
       - REDIS_URL=redis://redis:6379/0
       - LOG_LEVEL=INFO

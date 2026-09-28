@@ -139,3 +139,63 @@ class TestErrorHandling:
             content_type='application/json'
         )
         assert response.status_code in [400, 422]
+
+
+def test_production_requires_secret_key_and_admin_password(monkeypatch):
+    from app import create_app
+
+    monkeypatch.delenv('SECRET_KEY', raising=False)
+    monkeypatch.setenv('ADMIN_PASSWORD', 'a-strong-admin-password')
+    with pytest.raises(RuntimeError, match='SECRET_KEY'):
+        create_app('production')
+
+    monkeypatch.setenv('SECRET_KEY', 's' * 48)
+    monkeypatch.delenv('ADMIN_PASSWORD', raising=False)
+    with pytest.raises(RuntimeError, match='ADMIN_PASSWORD'):
+        create_app('production')
+
+
+def test_production_bootstraps_secure_admin_and_disables_seeded_defaults(
+    monkeypatch, tmp_path
+):
+    from app import create_app, db
+    from app.models.database import User
+    from config import ProductionConfig
+
+    monkeypatch.setenv('SECRET_KEY', 's' * 48)
+    monkeypatch.setenv('ADMIN_PASSWORD', 'a-strong-admin-password')
+    monkeypatch.setenv('ADMIN_USERNAME', 'deployed-admin')
+    monkeypatch.setenv('ADMIN_EMAIL', 'admin@example.com')
+    monkeypatch.setattr(
+        ProductionConfig,
+        'SQLALCHEMY_DATABASE_URI',
+        f"sqlite:///{(tmp_path / 'production.db').as_posix()}",
+    )
+
+    app = create_app('production')
+    with app.app_context():
+        admin = User.query.filter_by(username='deployed-admin').one()
+        assert admin.check_password('a-strong-admin-password')
+        assert admin.role == 'admin'
+        assert admin.is_active
+
+        legacy_admin = User(username='legacy-admin', email='legacy@example.com', role='admin')
+        legacy_admin.set_password('admin123')
+        legacy_demo = User(username='legacy-demo', email='demo@example.com', role='admin')
+        legacy_demo.set_password('demo123')
+        db.session.add_all([legacy_admin, legacy_demo])
+        db.session.commit()
+
+    app = create_app('production')
+    with app.app_context():
+        assert not User.query.filter_by(username='legacy-admin').one().is_active
+        assert not User.query.filter_by(username='legacy-demo').one().is_active
+        assert User.query.filter_by(username='deployed-admin').one().is_active
+
+
+def test_demo_seeder_refuses_production(monkeypatch):
+    from utils.seed_data import seed_all
+
+    monkeypatch.setenv('FLASK_ENV', 'production')
+    with pytest.raises(RuntimeError, match='disabled in production'):
+        seed_all(flows=0, alerts=0)

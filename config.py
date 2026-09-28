@@ -182,8 +182,7 @@ class ProductionConfig(Config):
     """Production configuration."""
     DEBUG = False
     
-    # Use environment variables in production with fallbacks
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'ai-nids-production-secret-key-2024'
+    SECRET_KEY = None
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or f'sqlite:///{BASE_DIR / "data" / "nids.db"}'
     
     # Azure SQL connection string format

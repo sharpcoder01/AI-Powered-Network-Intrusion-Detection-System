@@ -154,7 +154,7 @@ def print_next_steps():
     
     5. Access the dashboard:
        http://localhost:5000
-       Default admin: admin / admin123 (change immediately!)
+    Create an administrator with: flask create-admin
     
     Documentation: README.md
     Issues: https://github.com/yourusername/ai-nids/issues

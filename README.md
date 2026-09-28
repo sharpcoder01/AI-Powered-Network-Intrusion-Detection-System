@@ -222,12 +222,9 @@ docker-compose up --build -d
 
 ### 🔐 Default Credentials
 
-| Role | Username | Password |
-|:----:|:--------:|:--------:|
-| Admin | `admin` | `admin123` |
-| Demo | `demo` | `demo123` |
+Production does not create default accounts. Set `ADMIN_PASSWORD` (at least 12 characters) to bootstrap the initial administrator; optionally set `ADMIN_USERNAME` and `ADMIN_EMAIL` as well. For local development only, `python -m utils.seed_data` creates demo accounts.
 
-⚠️ **Change passwords immediately in production!**
+Production also requires a `SECRET_KEY` of at least 32 characters. Never use the example value in a public deployment.
 
 </div>
 
@@ -488,10 +485,17 @@ curl -X POST http://localhost:5000/api/v1/detect \
 
 ## ☁️ Deployment
 
+### Render Deployment
+
+This repository includes a `render.yaml` Blueprint for a Docker web service. In Render, choose **New + > Blueprint**, connect this GitHub repository, and select the branch containing `render.yaml`. Enter an administrator password of at least 12 characters when prompted. The Blueprint configures `FLASK_ENV=production`, one Gunicorn worker, a generated `SECRET_KEY`, a 1 GB persistent disk at `/app/data`, and `/api/v1/health`. The persistent disk requires a paid Render instance.
+
 ### 🐳 Docker Deployment
 
 ```bash
-# Build and run
+# Set strong secrets in .env before starting the production stack:
+# SECRET_KEY=<random value, at least 32 characters>
+# ADMIN_PASSWORD=<initial admin password, at least 12 characters>
+# Then build and run
 docker-compose up --build -d
 
 # View logs
@@ -518,7 +522,10 @@ az login
 
 | Variable | Description | Default |
 |:---------|:------------|:--------|
-| `SECRET_KEY` | Flask secret key | Auto-generated |
+| `SECRET_KEY` | Flask signing key (minimum 32 characters) | Required in production |
+| `ADMIN_PASSWORD` | Initial production administrator password (minimum 12 characters) | Required in production |
+| `ADMIN_USERNAME` | Initial production administrator username | `admin` |
+| `ADMIN_EMAIL` | Initial production administrator email | `admin@ainids.local` |
 | `DATABASE_URL` | Database connection | SQLite |
 | `REDIS_URL` | Redis for caching | None |
 | `ML_MODEL_PATH` | Path to models | `./models` |
