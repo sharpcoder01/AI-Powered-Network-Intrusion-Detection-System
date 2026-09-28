@@ -2,7 +2,7 @@ services:
   - type: web
     name: ai-nids
     runtime: docker
-    plan: 1c-2g
+    plan: free
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /api/v1/health
@@ -19,7 +19,3 @@ services:
         value: security-admin@example.com
       - key: ADMIN_PASSWORD
         sync: false
-    disk:
-      name: ai-nids-data
-      mountPath: /app/data
-      sizeGB: 1

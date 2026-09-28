@@ -487,7 +487,9 @@ curl -X POST http://localhost:5000/api/v1/detect \
 
 ### Render Deployment
 
-This repository includes a `render.yaml` Blueprint for a Docker web service. In Render, choose **New + > Blueprint**, connect this GitHub repository, and select the branch containing `render.yaml`. Enter an administrator password of at least 12 characters when prompted. The Blueprint configures `FLASK_ENV=production`, one Gunicorn worker, a generated `SECRET_KEY`, a 1 GB persistent disk at `/app/data`, and `/api/v1/health`. The persistent disk requires a paid Render instance.
+This repository includes a `render.yaml` Blueprint for a free Docker web service. In Render, choose **New + > Blueprint**, connect this GitHub repository, and select the branch containing `render.yaml`. Enter an administrator password of at least 12 characters when prompted. The Blueprint configures `FLASK_ENV=production`, one Gunicorn worker, a generated `SECRET_KEY`, and `/api/v1/health`.
+
+Render's free service has an ephemeral filesystem and cannot attach a persistent disk. SQLite data under `/app/data` can be lost on restart, redeploy, or idle spin-down; the service also spins down after 15 minutes without traffic. Use a paid service with a persistent disk, or a managed database, when you need durable production data.
 
 ### 🐳 Docker Deployment
 
